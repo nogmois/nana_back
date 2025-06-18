@@ -16,6 +16,12 @@ from app.utils.wake_window_calculator import get_wake_window_minutes
 router = APIRouter(prefix="/plan", tags=["routine plan"])
 
 
+
+def ensure_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
 def _get_historical_naps(
     baby_id: int,
     db: Session,
@@ -151,10 +157,6 @@ def get_today_plan(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    """
-    Retorna o plano de rotina de hoje para esse bebê. Se já existir (e ainda não expirou),
-    devolve. Caso contrário, gera um novo chamando generate_routine_plan.
-    """
     baby = (
         db.query(Baby)
         .filter_by(id=baby_id, user_id=current_user.id)
@@ -172,7 +174,6 @@ def get_today_plan(
         .first()
     )
 
-    # Se já há um plano hoje e a primeira soneca ainda não terminou, retornamos
     if plan:
         last_sleep_end = (
             db.query(Event)
@@ -182,34 +183,27 @@ def get_today_plan(
         )
 
         if last_sleep_end:
-            ts = last_sleep_end.timestamp
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            else:
-                ts = ts.astimezone(timezone.utc)
+            ts = ensure_utc(last_sleep_end.timestamp)
+            plan_nap_start = ensure_utc(plan.nap_start)
+            plan_nap_end = ensure_utc(plan.nap_end)
 
-            if plan.nap_start <= ts <= plan.nap_end:
+            if plan_nap_start <= ts <= plan_nap_end:
                 return {
                     "baby_id": baby_id,
                     "date": today,
-                    "naps": [{"start": plan.nap_start, "end": plan.nap_end}],
+                    "naps": [{"start": plan_nap_start, "end": plan_nap_end}],
                     "feeds": [plan.feed_time],
                 }
 
-
-        if not last_sleep_end and now < plan.nap_end:
-            # fallback: nenhum evento ainda, plano ainda válido
+        if not last_sleep_end and now < ensure_utc(plan.nap_end):
             return {
                 "baby_id": baby_id,
                 "date": today,
-                "naps": [{"start": plan.nap_start, "end": plan.nap_end}],
+                "naps": [{"start": ensure_utc(plan.nap_start), "end": ensure_utc(plan.nap_end)}],
                 "feeds": [plan.feed_time],
             }
 
-        # Caso contrário, gera novo plano
-
-
-    # Senão, chamamos a geração de rotina (que retornará JSON com várias sonecas/feeds)
+    # Caso contrário, gera novo plano
     return generate_routine_plan(
         baby_id=baby_id,
         db=db,
