@@ -181,17 +181,21 @@ def get_today_plan(
             .first()
         )
 
-        if (
-            last_sleep_end and
-            plan.nap_start <= last_sleep_end.timestamp <= plan.nap_end
-        ):
-            # o bebê acordou dentro da soneca atual → plano ainda válido
-            return {
-                "baby_id": baby_id,
-                "date": today,
-                "naps": [{"start": plan.nap_start, "end": plan.nap_end}],
-                "feeds": [plan.feed_time],
-            }
+        if last_sleep_end:
+            ts = last_sleep_end.timestamp
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
+
+            if plan.nap_start <= ts <= plan.nap_end:
+                return {
+                    "baby_id": baby_id,
+                    "date": today,
+                    "naps": [{"start": plan.nap_start, "end": plan.nap_end}],
+                    "feeds": [plan.feed_time],
+                }
+
 
         if not last_sleep_end and now < plan.nap_end:
             # fallback: nenhum evento ainda, plano ainda válido
