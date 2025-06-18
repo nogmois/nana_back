@@ -26,7 +26,7 @@ def create_checkout_session(
         payment_method_types=["card"],
         line_items=[{"price": price_id, "quantity": 1}],
         mode="subscription",
-        success_url="https://seu-site.com/success",
-        cancel_url="https://seu-site.com/plans",
+        success_url="https://nanafacil-web.onrender.com/success",
+        cancel_url="https://nanafacil-web.onrender.com/plans",
     )
     return {"sessionId": session.id}
