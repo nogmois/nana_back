@@ -74,7 +74,7 @@ def login(data: AuthRequest, db: Session = Depends(get_db)):
     has_active = len(subs.data) > 0
 
     # Trial de 3 dias
-    trial_end_dt = user.created_at + timedelta(days=3)
+    trial_end_dt = user.created_at + timedelta(days=30)
     now = datetime.utcnow()
     trial_active = now < trial_end_dt
 

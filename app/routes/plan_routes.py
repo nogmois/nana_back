@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, date, time
 from statistics import mean
 from typing import List, Dict, Any
 
+from datetime import timezone
+
 from app.models.sleep_plan_model import RoutinePlan
 from app.models.event_model import Event
 from app.models.baby_model import Baby
@@ -106,29 +108,24 @@ def _build_daily_routine(
     age_days: int,  
 ) -> Dict[str, Any]:
     """
-    Gera o plano de rotina completo para 'naps_count' sonecas no dia 'current_date'.
-    - Usa last_sleep_end como ponto de partida para first nap
-    - Usa wake_window em minutos (pela idade) para calcular próxima soneca
-    - Sonecas terão duração = avg_nap_minutes (fallback 45)
-    - Cada mamada fica 15 min após o fim de uma soneca
+    Gera o plano de rotina...
     """
 
-    # wake_window para a faixa etária do bebê
     wake_minutes = get_wake_window_minutes(age_days)
 
     naps_list: List[Dict[str, datetime]] = []
     feeds_list: List[datetime] = []
 
-    now_dt = datetime.now()
+    # Corrige timezone
+    now_dt = datetime.now(timezone.utc)
+    last_sleep_end = last_sleep_end.astimezone(timezone.utc)
 
     tentative_first_start = last_sleep_end + timedelta(minutes=wake_minutes)
 
-    # Se o horário sugerido já passou, move a soneca para daqui 15 minutos
     if tentative_first_start < now_dt:
         tentative_first_start = now_dt + timedelta(minutes=15)
 
     first_start = tentative_first_start
-
 
     nap_start = first_start
     for i in range(naps_count):
@@ -138,9 +135,7 @@ def _build_daily_routine(
         naps_list.append({"start": nap_start, "end": nap_end})
         feeds_list.append(feed_time)
 
-        # Próxima soneca: wake window a partir do fim
-        next_wake_minutes = wake_minutes
-        nap_start = nap_end + timedelta(minutes=next_wake_minutes)
+        nap_start = nap_end + timedelta(minutes=wake_minutes)
 
     return {
         "baby_id": baby_id,
@@ -169,7 +164,7 @@ def get_today_plan(
         raise HTTPException(status_code=403, detail="Acesso negado para este bebê")
 
     today = date.today()
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
     plan: RoutinePlan = (
         db.query(RoutinePlan)
