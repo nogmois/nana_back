@@ -24,7 +24,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",          # React local
         "https://nanafacil.com",          # Produção futura
-        "https://www.nanafacil.com"
+        "https://www.nanafacil.com",
+        "https://nanafacil-web.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
