@@ -43,3 +43,8 @@ routerAPI.include_router(report_routes)
 routerAPI.include_router(payment_routes)
 # Anexa o roteador à aplicação principal
 app.include_router(routerAPI)
+
+
+@app.get("/", tags=["Root"])
+async def read_root():
+    return {"status": "NanaFácil API está no ar!"}
