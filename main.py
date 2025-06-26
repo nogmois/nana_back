@@ -10,6 +10,8 @@ from app.routes.plan_routes import router as plan_routes
 from app.routes.report_routes import router as report_routes
 from app.routes.payment.payment import router as payment_routes
 
+from app.routes.admin import router as admin_routes
+
 
 # Cria a instância do FastAPI
 app = FastAPI(
@@ -40,8 +42,10 @@ routerAPI.include_router(event_routes)
 routerAPI.include_router(plan_routes)
 routerAPI.include_router(report_routes)
 routerAPI.include_router(payment_routes)
+routerAPI.include_router(admin_routes)
 # Anexa o roteador à aplicação principal
 app.include_router(routerAPI)
+
 
 
 @app.get("/", tags=["Root"])
